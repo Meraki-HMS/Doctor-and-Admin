@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import DashboardCard from "../../components/doctor/common/DashboardCard";
 import BedChart from "../../components/BedChart";
-import UpcomingAppointments from "../../components/UpcomingAppointments";
+import UpcomingAppointments from "../../components/doctor/appointments/UpcomingAppointments";
 
 export default function Home() {
   const router = useRouter();
