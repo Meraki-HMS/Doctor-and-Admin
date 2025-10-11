@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { addPrescriptionToPatientRecord } from "@/services/patientRecordApi";
 
 const initialFormData = {
   patientEmail: "",
@@ -8,12 +9,12 @@ const initialFormData = {
   diagnosis: [""],
   medicines: [],
   tests: [],
-  notes: ""
+  notes: "",
 };
 
 const commonTests = [
   "Complete Blood Count (CBC)",
-  "Lipid Profile", 
+  "Lipid Profile",
   "Liver Function Test",
   "Kidney Function Test",
   "Thyroid Profile",
@@ -25,35 +26,39 @@ const commonTests = [
   "CT Scan",
   "MRI",
   "Blood Pressure Monitoring",
-  "Cholesterol Test"
+  "Cholesterol Test",
 ];
 
-export default function PrescriptionForm({ initialPatientData, onSubmit, onCancel }) {
+export default function PrescriptionForm({
+  initialPatientData,
+  onSubmit,
+  onCancel,
+}) {
   const [formData, setFormData] = useState(initialFormData);
   const [currentMedicine, setCurrentMedicine] = useState({
     medicine_name: "",
     dosage: "",
     frequency: "Once daily",
     duration: "",
-    instructions: ""
+    instructions: "",
   });
   const [customTest, setCustomTest] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Pre-fill form with initial patient data
   useEffect(() => {
+    console.log("initialPatientData:", initialPatientData);
     if (initialPatientData) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         patientEmail: initialPatientData.patientEmail || "",
-        patientName: initialPatientData.patientName || ""
+        patientName: initialPatientData.patientName || "",
       }));
     }
   }, [initialPatientData]);
 
   const frequencyOptions = [
     "Once daily",
-    "Twice daily", 
+    "Twice daily",
     "Three times daily",
     "Four times daily",
     "Every 6 hours",
@@ -64,203 +69,245 @@ export default function PrescriptionForm({ initialPatientData, onSubmit, onCance
     "After meals",
     "At bedtime",
     "Weekly",
-    "Monthly"
+    "Monthly",
   ];
 
   const durationOptions = [
-    "1 day", "2 days", "3 days", "5 days", "7 days", "10 days", 
-    "14 days", "21 days", "30 days", "60 days", "90 days", 
-    "As directed", "Until finished"
+    "1 day",
+    "2 days",
+    "3 days",
+    "5 days",
+    "7 days",
+    "10 days",
+    "14 days",
+    "21 days",
+    "30 days",
+    "60 days",
+    "90 days",
+    "As directed",
+    "Until finished",
   ];
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.patientEmail.trim()) newErrors.patientEmail = "Patient email is required";
-    if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
-    
-    // Validate symptoms - at least one symptom should have content
-    const hasSymptoms = formData.symptoms.some(symptom => symptom.trim() !== "");
-    if (!hasSymptoms) newErrors.symptoms = "At least one symptom is required";
-    
-    // Validate diagnosis - at least one diagnosis should have content
-    const hasDiagnosis = formData.diagnosis.some(d => d.trim() !== "");
-    if (!hasDiagnosis) newErrors.diagnosis = "At least one diagnosis is required";
-    
-    if (formData.medicines.length === 0) newErrors.medicines = "At least one medicine is required";
-    
+    if (!formData.patientEmail.trim())
+      newErrors.patientEmail = "Patient email is required";
+    if (!formData.patientName.trim())
+      newErrors.patientName = "Patient name is required";
+    if (!formData.symptoms.some((s) => s.trim() !== ""))
+      newErrors.symptoms = "At least one symptom is required";
+    if (!formData.diagnosis.some((d) => d.trim() !== ""))
+      newErrors.diagnosis = "At least one diagnosis is required";
+    if (formData.medicines.length === 0)
+      newErrors.medicines = "At least one medicine is required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Symptom Management
+  // Symptom handlers
   const handleSymptomChange = (index, value) => {
-    const updatedSymptoms = [...formData.symptoms];
-    updatedSymptoms[index] = value;
-    setFormData(prev => ({ ...prev, symptoms: updatedSymptoms }));
+    const updated = [...formData.symptoms];
+    updated[index] = value;
+    setFormData((prev) => ({ ...prev, symptoms: updated }));
   };
-
-  const addSymptom = () => {
-    setFormData(prev => ({ ...prev, symptoms: [...prev.symptoms, ""] }));
-  };
-
+  const addSymptom = () =>
+    setFormData((prev) => ({ ...prev, symptoms: [...prev.symptoms, ""] }));
   const removeSymptom = (index) => {
     if (formData.symptoms.length > 1) {
-      const updatedSymptoms = formData.symptoms.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, symptoms: updatedSymptoms }));
+      setFormData((prev) => ({
+        ...prev,
+        symptoms: prev.symptoms.filter((_, i) => i !== index),
+      }));
     }
   };
 
-  // Diagnosis Management
+  // Diagnosis handlers
   const handleDiagnosisChange = (index, value) => {
-    const updatedDiagnosis = [...formData.diagnosis];
-    updatedDiagnosis[index] = value;
-    setFormData(prev => ({ ...prev, diagnosis: updatedDiagnosis }));
+    const updated = [...formData.diagnosis];
+    updated[index] = value;
+    setFormData((prev) => ({ ...prev, diagnosis: updated }));
   };
-
-  const addDiagnosis = () => {
-    setFormData(prev => ({ ...prev, diagnosis: [...prev.diagnosis, ""] }));
-  };
-
+  const addDiagnosis = () =>
+    setFormData((prev) => ({ ...prev, diagnosis: [...prev.diagnosis, ""] }));
   const removeDiagnosis = (index) => {
     if (formData.diagnosis.length > 1) {
-      const updatedDiagnosis = formData.diagnosis.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, diagnosis: updatedDiagnosis }));
+      setFormData((prev) => ({
+        ...prev,
+        diagnosis: prev.diagnosis.filter((_, i) => i !== index),
+      }));
     }
   };
 
-  // Medicine Management
+  // Medicines handlers
   const handleAddMedicine = () => {
-    if (!currentMedicine.medicine_name || !currentMedicine.dosage || !currentMedicine.duration) {
+    if (
+      !currentMedicine.medicine_name ||
+      !currentMedicine.dosage ||
+      !currentMedicine.duration
+    ) {
       alert("Please fill medicine name, dosage, and duration");
       return;
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      medicines: [...prev.medicines, { ...currentMedicine }]
+      medicines: [...prev.medicines, { ...currentMedicine }],
     }));
-    setCurrentMedicine({ 
-      medicine_name: "", 
-      dosage: "", 
-      frequency: "Once daily", 
-      duration: "", 
-      instructions: "" 
+    setCurrentMedicine({
+      medicine_name: "",
+      dosage: "",
+      frequency: "Once daily",
+      duration: "",
+      instructions: "",
     });
   };
-
   const handleRemoveMedicine = (index) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      medicines: prev.medicines.filter((_, i) => i !== index) 
-    }));
-  };
-
-  // Test Management
-  const handleTestToggle = (test) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      tests: prev.tests.includes(test) 
-        ? prev.tests.filter(t => t !== test) 
-        : [...prev.tests, test]
+      medicines: prev.medicines.filter((_, i) => i !== index),
     }));
   };
 
+  // Tests handlers
+  const handleTestToggle = (test) => {
+    setFormData((prev) => ({
+      ...prev,
+      tests: prev.tests.includes(test)
+        ? prev.tests.filter((t) => t !== test)
+        : [...prev.tests, test],
+    }));
+  };
   const addCustomTest = () => {
     if (customTest.trim() && !formData.tests.includes(customTest.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        tests: [...prev.tests, customTest.trim()]
+        tests: [...prev.tests, customTest.trim()],
       }));
       setCustomTest("");
     }
   };
-
-  const removeTest = (testToRemove) => {
-    setFormData(prev => ({
+  const removeTest = (test) =>
+    setFormData((prev) => ({
       ...prev,
-      tests: prev.tests.filter(test => test !== testToRemove)
+      tests: prev.tests.filter((t) => t !== test),
     }));
-  };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) return;
-    
+
     // Clean up empty symptoms and diagnosis
     const cleanedFormData = {
       ...formData,
-      symptoms: formData.symptoms.filter(s => s.trim() !== ""),
-      diagnosis: formData.diagnosis.filter(d => d.trim() !== "")
+      symptoms: formData.symptoms.filter((s) => s.trim() !== ""),
+      diagnosis: formData.diagnosis.filter((d) => d.trim() !== ""),
     };
-    
-    onSubmit(cleanedFormData);
-    setFormData(initialFormData);
-  };
 
+    try {
+      // Get token from localStorage
+      const raw = localStorage.getItem("hmsUser");
+      const user = raw ? JSON.parse(raw) : null;
+      const token = user?.token;
+
+      if (!token) {
+        alert("You are not authenticated!");
+        return;
+      }
+
+      // Call API
+      const response = await addPrescriptionToPatientRecord(
+        cleanedFormData,
+        token
+      );
+
+      if (response?.data) {
+        alert("Prescription created successfully!");
+        onSubmit(cleanedFormData); // trigger parent callback
+        setFormData(initialFormData); // reset form
+      }
+    } catch (err) {
+      console.error("Error creating prescription:", err);
+      alert("Failed to create prescription. Please try again.");
+    }
+  };
   return (
     <div className="max-w-4xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Patient Information */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Patient Information</h3>
+        {/* Patient Info */}
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">
+            Patient Information
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Patient Email *
-              </label>
+              <label className="block mb-2 text-black">Patient Email *</label>
               <input
                 type="email"
                 value={formData.patientEmail}
-                onChange={(e) => setFormData(prev => ({ ...prev, patientEmail: e.target.value }))}
-                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.patientEmail ? 'border-red-500' : 'border-gray-300'
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    patientEmail: e.target.value,
+                  }))
+                }
+                className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500 ${
+                  errors.patientEmail ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="patient@example.com"
               />
               {errors.patientEmail && (
-                <p className="text-red-600 text-sm mt-1">{errors.patientEmail}</p>
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.patientEmail}
+                </p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Patient Name *
-              </label>
+              <label className="block mb-2 text-black">Patient Name *</label>
               <input
                 type="text"
                 value={formData.patientName}
-                onChange={(e) => setFormData(prev => ({ ...prev, patientName: e.target.value }))}
-                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.patientName ? 'border-red-500' : 'border-gray-300'
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    patientName: e.target.value,
+                  }))
+                }
+                className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500 ${
+                  errors.patientName ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter patient name"
               />
               {errors.patientName && (
-                <p className="text-red-600 text-sm mt-1">{errors.patientName}</p>
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.patientName}
+                </p>
               )}
             </div>
           </div>
         </div>
 
         {/* Symptoms */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Symptoms</h3>
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">Symptoms</h3>
           {errors.symptoms && (
             <p className="text-red-600 text-sm mb-3">{errors.symptoms}</p>
           )}
           <div className="space-y-3">
-            {formData.symptoms.map((symptom, index) => (
-              <div key={index} className="flex gap-3">
+            {formData.symptoms.map((symptom, i) => (
+              <div key={i} className="flex gap-3">
                 <input
                   type="text"
                   value={symptom}
-                  onChange={(e) => handleSymptomChange(index, e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder={`Symptom ${index + 1}`}
+                  onChange={(e) => handleSymptomChange(i, e.target.value)}
+                  className="flex-1 px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
+                  placeholder={`Symptom ${i + 1}`}
                 />
                 {formData.symptoms.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => removeSymptom(index)}
-                    className="px-4 py-3 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                    onClick={() => removeSymptom(i)}
+                    className="px-4 py-3 bg-red-100 text-red-600 rounded-lg"
                   >
                     <i className="bi bi-trash"></i>
                   </button>
@@ -271,34 +318,33 @@ export default function PrescriptionForm({ initialPatientData, onSubmit, onCance
           <button
             type="button"
             onClick={addSymptom}
-            className="mt-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-medium flex items-center gap-2"
+            className="mt-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg"
           >
-            <i className="bi bi-plus-lg"></i>
-            Add Symptom
+            <i className="bi bi-plus-lg"></i> Add Symptom
           </button>
         </div>
 
         {/* Diagnosis */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Diagnosis</h3>
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">Diagnosis</h3>
           {errors.diagnosis && (
             <p className="text-red-600 text-sm mb-3">{errors.diagnosis}</p>
           )}
           <div className="space-y-3">
-            {formData.diagnosis.map((diag, index) => (
-              <div key={index} className="flex gap-3">
+            {formData.diagnosis.map((diag, i) => (
+              <div key={i} className="flex gap-3">
                 <input
                   type="text"
                   value={diag}
-                  onChange={(e) => handleDiagnosisChange(index, e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder={`Diagnosis ${index + 1}`}
+                  onChange={(e) => handleDiagnosisChange(i, e.target.value)}
+                  className="flex-1 px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
+                  placeholder={`Diagnosis ${i + 1}`}
                 />
                 {formData.diagnosis.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => removeDiagnosis(index)}
-                    className="px-4 py-3 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                    onClick={() => removeDiagnosis(i)}
+                    className="px-4 py-3 bg-red-100 text-red-600 rounded-lg"
                   >
                     <i className="bi bi-trash"></i>
                   </button>
@@ -309,221 +355,199 @@ export default function PrescriptionForm({ initialPatientData, onSubmit, onCance
           <button
             type="button"
             onClick={addDiagnosis}
-            className="mt-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors font-medium flex items-center gap-2"
+            className="mt-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg"
           >
-            <i className="bi bi-plus-lg"></i>
-            Add More Diagnosis
+            <i className="bi bi-plus-lg"></i> Add Diagnosis
           </button>
         </div>
 
         {/* Medicines */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Medicines</h3>
-          
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">Medicines</h3>
           {errors.medicines && (
             <p className="text-red-600 text-sm mb-3">{errors.medicines}</p>
           )}
 
-          {/* Medicine Form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Medicine Name *
-              </label>
+              <label className="block mb-2 text-black">Medicine Name *</label>
               <input
                 type="text"
                 value={currentMedicine.medicine_name}
-                onChange={(e) => setCurrentMedicine(prev => ({ ...prev, medicine_name: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onChange={(e) =>
+                  setCurrentMedicine((prev) => ({
+                    ...prev,
+                    medicine_name: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
                 placeholder="Enter medicine name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dosage *
-              </label>
+              <label className="block mb-2 text-black">Dosage *</label>
               <input
                 type="text"
                 value={currentMedicine.dosage}
-                onChange={(e) => setCurrentMedicine(prev => ({ ...prev, dosage: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onChange={(e) =>
+                  setCurrentMedicine((prev) => ({
+                    ...prev,
+                    dosage: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
                 placeholder="e.g., 1 tablet, 10ml"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Frequency
-              </label>
+              <label className="block mb-2 text-black">Frequency</label>
               <select
                 value={currentMedicine.frequency}
-                onChange={(e) => setCurrentMedicine(prev => ({ ...prev, frequency: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onChange={(e) =>
+                  setCurrentMedicine((prev) => ({
+                    ...prev,
+                    frequency: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
               >
-                {frequencyOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                {frequencyOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Duration *
-              </label>
+              <label className="block mb-2 text-black">Duration *</label>
               <select
                 value={currentMedicine.duration}
-                onChange={(e) => setCurrentMedicine(prev => ({ ...prev, duration: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onChange={(e) =>
+                  setCurrentMedicine((prev) => ({
+                    ...prev,
+                    duration: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
               >
-                <option value="">Select duration</option>
-                {durationOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                {durationOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
                   </option>
                 ))}
               </select>
             </div>
+            <div className="md:col-span-2">
+              <label className="block mb-2 text-black">Instructions</label>
+              <input
+                type="text"
+                value={currentMedicine.instructions}
+                onChange={(e) =>
+                  setCurrentMedicine((prev) => ({
+                    ...prev,
+                    instructions: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
+                placeholder="Any special instructions"
+              />
+            </div>
           </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Instructions
-            </label>
-            <input
-              type="text"
-              value={currentMedicine.instructions}
-              onChange={(e) => setCurrentMedicine(prev => ({ ...prev, instructions: e.target.value }))}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Special instructions (optional)"
-            />
-          </div>
-
           <button
             type="button"
             onClick={handleAddMedicine}
-            className="w-full bg-green-100 text-green-600 py-3 rounded-lg hover:bg-green-200 transition-colors font-medium flex items-center justify-center gap-2"
+            className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg mb-4"
           >
-            <i className="bi bi-plus-lg"></i>
-            Add Medicine to Prescription
+            Add Medicine
           </button>
 
-          {/* Added Medicines List */}
-          {formData.medicines.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-medium text-gray-700 mb-3">Added Medicines:</h4>
-              <div className="space-y-2">
-                {formData.medicines.map((medicine, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                    <div>
-                      <span className="font-medium">{medicine.medicine_name}</span>
-                      <span className="text-sm text-gray-600 ml-2">
-                        {medicine.dosage} • {medicine.frequency} • {medicine.duration}
-                      </span>
-                      {medicine.instructions && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          Instructions: {medicine.instructions}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMedicine(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <i className="bi bi-trash"></i>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Recommended Tests */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Recommended Tests</h3>
-          
-          {/* Common Tests */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select Common Tests:
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {commonTests.map((test) => (
-                <label key={test} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.tests.includes(test)}
-                    onChange={() => handleTestToggle(test)}
-                    className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{test}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Test */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Add Custom Test:
-            </label>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={customTest}
-                onChange={(e) => setCustomTest(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter custom test name"
-              />
-              <button
-                type="button"
-                onClick={addCustomTest}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          <div className="space-y-2">
+            {formData.medicines.map((med, i) => (
+              <div
+                key={i}
+                className="flex justify-between items-center border rounded-lg p-2"
               >
-                Add Custom
-              </button>
-            </div>
-          </div>
-
-          {/* Selected Tests */}
-          {formData.tests.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-medium text-gray-700 mb-3">Selected Tests:</h4>
-              <div className="flex flex-wrap gap-2">
-                {formData.tests.map((test) => (
-                  <span key={test} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                    {test}
-                    <button
-                      type="button"
-                      onClick={() => removeTest(test)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      <i className="bi bi-x"></i>
-                    </button>
-                  </span>
-                ))}
+                <span>
+                  {med.medicine_name} - {med.dosage} - {med.frequency} -{" "}
+                  {med.duration} {med.instructions && `(${med.instructions})`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveMedicine(i)}
+                  className="px-2 py-1 bg-red-100 text-red-600 rounded-lg"
+                >
+                  Remove
+                </button>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
-        {/* Notes and Instructions */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Notes & Instructions</h3>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Notes, Instructions & Follow-up Information
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={4}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Enter any additional instructions, follow-up advice, medication precautions, or other important notes for the patient..."
-            />
+        {/* Tests */}
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">Tests</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+            {commonTests.map((test, i) => (
+              <label
+                key={i}
+                className=" text-black flex items-center gap-2 border p-2 rounded-lg cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.tests.includes(test)}
+                  onChange={() => handleTestToggle(test)}
+                />
+                {test}
+              </label>
+            ))}
           </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customTest}
+              onChange={(e) => setCustomTest(e.target.value)}
+              placeholder="Custom Test"
+              className="flex-1 px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
+            />
+            <button
+              type="button"
+              onClick={addCustomTest}
+              className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg"
+            >
+              Add Test
+            </button>
+          </div>
+          <div className="mt-3 space-y-2">
+            {formData.tests.map((t, i) => (
+              <div
+                key={i}
+                className="flex justify-between items-center border rounded-lg p-2"
+              >
+                <span>{t}</span>
+                <button
+                  type="button"
+                  onClick={() => removeTest(t)}
+                  className="px-2 py-1 bg-red-100 text-red-600 rounded-lg"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">Notes</h3>
+          <textarea
+            value={formData.notes}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, notes: e.target.value }))
+            }
+            placeholder="Additional notes..."
+            className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-green-500"
+            rows={4}
+          />
         </div>
 
         {/* Action Buttons */}
@@ -531,15 +555,132 @@ export default function PrescriptionForm({ initialPatientData, onSubmit, onCance
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+            className="px-6 py-3 border rounded-lg text-black"
           >
             Cancel
           </button>
           <button
-            type="submit"
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
+            type="button"
+            onClick={async () => {
+              console.log("Create Prescription button clicked");
+              try {
+                // 1️⃣ Validate the form
+                if (!validateForm()) {
+                  console.warn("Form validation failed", errors);
+                  return;
+                }
+
+                // 2️⃣ Clean up empty symptoms and diagnosis
+                const cleanedFormData = {
+                  ...formData,
+                  symptoms: formData.symptoms.filter((s) => s.trim() !== ""),
+                  diagnosis: formData.diagnosis.filter((d) => d.trim() !== ""),
+                };
+                console.log("Cleaned form data prepared:", cleanedFormData);
+
+                // 3️⃣ Get user token and IDs from localStorage
+                const rawUser = localStorage.getItem("hmsUser");
+                console.log("Raw hmsUser from localStorage:", rawUser);
+                const user = rawUser ? JSON.parse(rawUser) : null;
+
+                if (!user) {
+                  console.error("User object missing in localStorage!");
+                  return;
+                }
+
+                const token = user?.token;
+                const doctor_id = user?.doctorid;
+                const hospital_id = user?.hospitalId;
+
+                console.log("Token:", token);
+                console.log("Doctor ID:", doctor_id);
+                console.log("Hospital ID:", hospital_id);
+
+                if (!token || !doctor_id || !hospital_id) {
+                  throw new Error("User authentication data incomplete");
+                }
+
+                // 4️⃣ Get prescription context from localStorage
+                const rawContext = localStorage.getItem("prescriptionContext");
+                console.log(
+                  "Raw prescriptionContext from localStorage:",
+                  rawContext
+                );
+
+                let context = null;
+                try {
+                  context = rawContext ? JSON.parse(rawContext) : null;
+                  console.log("Parsed prescriptionContext object:", context);
+                } catch (parseError) {
+                  console.error(
+                    "Error parsing prescriptionContext:",
+                    parseError
+                  );
+                }
+
+                if (!context) {
+                  console.error(
+                    "Prescription context missing in localStorage!"
+                  );
+                  return;
+                }
+
+                // Optional: print individual context fields
+                console.log("Patient ID:", context.patient_id);
+                console.log("Appointment ID:", context.appointment_id);
+                console.log("Patient Name:", context.patientName);
+                console.log("Patient Email:", context.patientEmail);
+                console.log("Date:", context.date);
+                console.log("Slot Start:", context.slotStart);
+                console.log("Slot End:", context.slotEnd);
+                console.log("Session Type:", context.sessionType);
+                console.log("Status:", context.status);
+
+                const patient_id = context.patient_id;
+                const appointment_id = context.appointment_id;
+
+                if (!patient_id || !appointment_id) {
+                  throw new Error("Patient or appointment ID missing");
+                }
+
+                // 5️⃣ Prepare final payload
+                // 5️⃣ Prepare final payload
+                const dataToSend = {
+                  ...cleanedFormData,
+                  diagnosis: cleanedFormData.diagnosis.join(", "), // array → single string
+                  symptoms: cleanedFormData.symptoms, // array is fine
+                  recommended_tests: cleanedFormData.tests, // rename field
+                  prescription: cleanedFormData.medicines.map((med) => ({
+                    medicine_name: med.medicine_name,
+                    dosage: med.dosage,
+                    frequency: med.frequency,
+                    duration: med.duration,
+                    // instructions is not in schema, so omit
+                  })),
+                  patient_id,
+                  doctor_id,
+                  hospital_id,
+                  appointment_id,
+                };
+
+                console.log("Final payload to send:", dataToSend);
+
+                // 6️⃣ Call API to create prescription
+                console.log("Sending request to create prescription...");
+                await addPrescriptionToPatientRecord(dataToSend, token);
+                console.log("Prescription successfully added!");
+
+                // 7️⃣ Success feedback & reset form
+                alert("Prescription created successfully!");
+                onSubmit(dataToSend);
+                setFormData(initialFormData);
+              } catch (err) {
+                console.error("Error in creating prescription:", err);
+                alert("Failed to create prescription. " + err.message);
+              }
+            }}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg"
           >
-            <i className="bi bi-file-medical"></i>
             Create Prescription
           </button>
         </div>
