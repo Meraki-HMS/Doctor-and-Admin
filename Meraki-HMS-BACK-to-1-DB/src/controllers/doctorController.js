@@ -6,12 +6,24 @@ const generateToken = require("../utils/generateToken");
 // ✅ Register Doctor
 exports.registerDoctor = async (req, res) => {
   try {
-    const { name, email, contact, password, hospital_id, specialization, workingHours, slotSize, breaks } = req.body;
+    const {
+      name,
+      email,
+      contact,
+      password,
+      hospital_id,
+      specialization,
+      workingHours,
+      slotSize,
+      breaks,
+    } = req.body;
 
-     // ✅ 1. Check if hospital exists by hospital_id
+    // ✅ 1. Check if hospital exists by hospital_id
     const hospital = await Hospital.findOne({ hospital_id });
     if (!hospital) {
-      return res.status(400).json({ message: "Invalid hospital_id, hospital not found" });
+      return res
+        .status(400)
+        .json({ message: "Invalid hospital_id, hospital not found" });
     }
 
     // Check if doctor exists
@@ -24,7 +36,7 @@ exports.registerDoctor = async (req, res) => {
       name,
       email,
       contact,
-      password: password, 
+      password: password,
       hospital_id,
       specialization,
       workingHours,
@@ -46,7 +58,7 @@ exports.registerDoctor = async (req, res) => {
 // ✅ Login Doctor
 exports.loginDoctor = async (req, res) => {
   try {
-    const { email, password  , hospital_id} = req.body;
+    const { email, password, hospital_id } = req.body;
 
     const doctor = await Doctor.findOne({ email });
     if (!doctor) {
@@ -54,7 +66,9 @@ exports.loginDoctor = async (req, res) => {
     }
     const hospital = await Hospital.findOne({ hospital_id });
     if (!hospital) {
-      return res.status(400).json({ message: "Invalid hospital_id, hospital not found" });
+      return res
+        .status(400)
+        .json({ message: "Invalid hospital_id, hospital not found" });
     }
 
     // Compare password
@@ -65,7 +79,8 @@ exports.loginDoctor = async (req, res) => {
 
     res.json({
       message: "Login successful",
-      doctorid : doctor._id,
+      doctorid: doctor._id,
+      hospital_id: doctor.hospital_id,
       token: generateToken(doctor._id, "doctor"),
     });
   } catch (error) {

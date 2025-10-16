@@ -21,7 +21,8 @@ export default function LoginPage() {
     const e = {};
     if (!hospitalId.trim()) e.hospitalId = "Hospital ID is required";
     if (!email.trim()) e.email = "Email is required";
-    else if (!emailRegex.test(email.trim())) e.email = "Enter a valid email address";
+    else if (!emailRegex.test(email.trim()))
+      e.email = "Enter a valid email address";
     // if (!password) e.password = "Password is required";
     // else if (password.length < 6) e.password = "Password must be at least 6 characters";
     setErrors(e);
@@ -42,11 +43,11 @@ export default function LoginPage() {
         hospital_id: hospitalId,
       });
 
-      const { token, doctorid } = response.data;
+      const { token, doctorid, hospital_id } = response.data;
 
       // ✅ Save to localStorage
       const user = {
-        hospitalId: hospitalId.trim(),
+        hospitalId: hospital_id, // Use hospital_id from backend response
         role,
         email: email.trim(),
         doctorid,
@@ -62,7 +63,10 @@ export default function LoginPage() {
     } catch (error) {
       console.log("🔴 Login error details:", error); // ✅ Debugging log
       console.log("🔴 Server response:", error.response?.data); // ✅ Log backend response
-      alert(error.response?.data?.message || "Login failed. Please check console for details.");
+      alert(
+        error.response?.data?.message ||
+          "Login failed. Please check console for details."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -82,13 +86,25 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/30">
-                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  <svg
+                    className="w-7 h-7"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
                   </svg>
                 </div>
                 <div>
                   <span className="text-2xl font-bold">Meraki HMS</span>
-                  <div className="text-blue-200 text-sm">Healthcare Management System</div>
+                  <div className="text-blue-200 text-sm">
+                    Healthcare Management System
+                  </div>
                 </div>
               </div>
 
@@ -98,7 +114,8 @@ export default function LoginPage() {
                   <span className="text-blue-200">Smart Healthcare</span>
                 </h1>
                 <p className="text-blue-100 text-lg leading-relaxed opacity-90">
-                  Experience the future of hospital management with our secure, intuitive platform.
+                  Experience the future of hospital management with our secure,
+                  intuitive platform.
                 </p>
               </div>
             </div>
@@ -110,15 +127,27 @@ export default function LoginPage() {
           <div className="relative z-10 max-w-md mx-auto w-full">
             <div className="text-center lg:text-left mb-8">
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-full text-sm font-medium mb-3">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
                 </svg>
                 Secure Login Portal
               </div>
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
                 Doctor Login
               </h2>
-              <p className="text-gray-600 mt-2">Enter your credentials to continue</p>
+              <p className="text-gray-600 mt-2">
+                Enter your credentials to continue
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -131,7 +160,9 @@ export default function LoginPage() {
                   value={hospitalId}
                   onChange={(e) => setHospitalId(e.target.value)}
                   className={`w-full px-4 py-3 text-black rounded-xl border-2 transition-all duration-300 ${
-                    errors.hospitalId ? "border-red-500 bg-red-50" : "border-gray-200 bg-white/80 hover:border-gray-300"
+                    errors.hospitalId
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200 bg-white/80 hover:border-gray-300"
                   }`}
                   placeholder="HOSP-001"
                 />
@@ -146,7 +177,9 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={`w-full px-4 py-3 text-black rounded-xl border-2 transition-all duration-300 ${
-                    errors.email ? "border-red-500 bg-red-50" : "border-gray-200 bg-white/80 hover:border-gray-300"
+                    errors.email
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200 bg-white/80 hover:border-gray-300"
                   }`}
                   type="email"
                   placeholder="your.email@hospital.com"
@@ -163,7 +196,9 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={`w-full px-4 py-3 pr-12 text-black rounded-xl border-2 transition-all duration-300 ${
-                      errors.password ? "border-red-500 bg-red-50" : "border-gray-200 bg-white/80 hover:border-gray-300"
+                      errors.password
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-200 bg-white/80 hover:border-gray-300"
                     }`}
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"

@@ -1,39 +1,57 @@
 // "use client";
+// import { createContext, useState } from "react";
 
-// import { createContext } from 'react';
+// // Create context
+// export const DoctorModuleContext = createContext(null);
 
-// // This context will now provide navigation, appointment data, and a way to update that data.
-// export const DoctorModuleContext = createContext({
-//   handleNavigateToPrescription: () => console.error("Navigation function not provided"),
-//   appointments: [],
-//   setAppointments: () => console.error("setAppointments function not provided"),
-//   prescriptionContext: null,
-//   setPrescriptionContext: () => {},
-// });
+// // Provider
+// export function DoctorModuleProvider({ children }) {
+//   const [appointments, setAppointments] = useState([]);
+//   const [prescriptionContext, setPrescriptionContext] = useState(null);
+//   const [prescriptionTab, setPrescriptionTab] = useState("history"); // "history" or "new"
+
+//   const value = {
+//     appointments,
+//     setAppointments,
+//     prescriptionContext,
+//     setPrescriptionContext,
+//     prescriptionTab,
+//     setPrescriptionTab,
+//   };
+
+//   return (
+//     <DoctorModuleContext.Provider value={value}>
+//       {children}
+//     </DoctorModuleContext.Provider>
+//   );
+// }
 
 "use client";
 import { createContext, useState } from "react";
 
-export const DoctorModuleContext = createContext(null);
+export const DoctorModuleContext = createContext();
 
 export function DoctorModuleProvider({ children }) {
-  const [appointments, setAppointments] = useState([]);
   const [prescriptionContext, setPrescriptionContext] = useState(null);
+  const [prescriptionTab, setPrescriptionTab] = useState("history");
 
-  // Track prescription tab in PrescriptionsPage
-  const [prescriptionTab, setPrescriptionTab] = useState("history"); // "history" or "new"
-
-  const value = {
-    appointments,
-    setAppointments,
-    prescriptionContext,
-    setPrescriptionContext,
-    prescriptionTab,
-    setPrescriptionTab,
+  const handleNavigateToPrescription = (context) => {
+    // Save full context including IDs
+    setPrescriptionContext(context);
+    localStorage.setItem("prescriptionContext", JSON.stringify(context));
+    setPrescriptionTab("new");
   };
 
   return (
-    <DoctorModuleContext.Provider value={value}>
+    <DoctorModuleContext.Provider
+      value={{
+        prescriptionContext,
+        setPrescriptionContext,
+        prescriptionTab,
+        setPrescriptionTab,
+        handleNavigateToPrescription,
+      }}
+    >
       {children}
     </DoctorModuleContext.Provider>
   );

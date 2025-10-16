@@ -32,3 +32,8 @@ select {
   color: #000 !important;
   caret-color: #000;
 }
+
+::placeholder {
+  color: #111827; /* Tailwind gray-900 */
+  opacity: 1;
+}

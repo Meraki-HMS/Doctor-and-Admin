@@ -4,7 +4,7 @@ const Hospital = require("../models/Hospital");
 const Patient = require("../models/Patient");
 const ReceptionistPatient = require("../models/receptionist_patient");
 
-// 1️⃣ Get all appointments for a doctor
+//1️⃣ Get all appointments for a doctor
 exports.getDoctorAppointmentsById = async (req, res) => {
   try {
     const { hospitalId, doctorId } = req.params;
@@ -12,14 +12,80 @@ exports.getDoctorAppointmentsById = async (req, res) => {
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
     if (doctor.hospital_id !== hospitalId)
-      return res.status(400).json({ message: "Doctor does not belong to this hospital" });
+      return res
+        .status(400)
+        .json({ message: "Doctor does not belong to this hospital" });
 
-    const appointments = await Appointment.find({ doctorId, hospitalId }).sort({ date: 1, slotStart: 1 });
-    res.json({ doctorId, hospitalId, total: appointments.length, appointments });
+    const appointments = await Appointment.find({
+      doctorId,
+      hospitalId,
+      status: { $ne: "Cancelled" },
+      is_prescription: { $ne: true },
+    }).sort({ date: 1, slotStart: 1 });
+
+    res.json({
+      doctorId,
+      hospitalId,
+      total: appointments.length,
+      appointments,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+// exports.getDoctorAppointmentsById = async (req, res) => {
+//   try {
+//     const { hospitalId, doctorId } = req.params;
+
+//     // Find the doctor
+//     const doctor = await Doctor.findById(doctorId);
+//     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+//     if (doctor.hospital_id !== hospitalId)
+//       return res.status(400).json({ message: "Doctor does not belong to this hospital" });
+
+//     // Find appointments and populate patient details
+//     const appointments = await Appointment.find({ doctorId, hospitalId })
+//       .sort({ date: 1, slotStart: 1 })
+//       .populate({
+//         path: "patientId", // field in Appointment schema
+//         select: "name email phone gender age", // pick only needed fields
+//       });
+
+//     // Map appointments to directly include patient details at top level
+//     const mappedAppointments = appointments.map((app) => ({
+//       _id: app._id,
+//       hospitalId: app.hospitalId,
+//       doctorId: app.doctorId,
+//       patientId: app.patientId?._id || app.patientId,
+//       patientName: app.patientId?.name || app.patientName || "Unknown",
+//       patientEmail: app.patientId?.email || app.patientEmail || "N/A",
+//       patientPhone: app.patientId?.phone || app.patientPhone || "N/A",
+//       patientGender: app.patientId?.gender || app.patientGender || "N/A",
+//       patientAge: app.patientId?.age || app.patientAge || null,
+//       date: app.date,
+//       slotStart: app.slotStart,
+//       slotEnd: app.slotEnd,
+//       status: app.status,
+//       department: app.department,
+//       appointmentType: app.appointmentType,
+//       sessionType: app.sessionType,
+//       reason: app.reason,
+//       slotDuration: app.slotDuration,
+//       createdAt: app.createdAt,
+//       __v: app.__v,
+//       is_prescription: app.is_prescription,
+//     }));
+
+//     res.json({
+//       doctorId,
+//       hospitalId,
+//       total: mappedAppointments.length,
+//       appointments: mappedAppointments,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 // 2️⃣ Get appointments for a doctor by doctorId + date
 exports.getDoctorAppointmentsByDate = async (req, res) => {
@@ -32,17 +98,26 @@ exports.getDoctorAppointmentsByDate = async (req, res) => {
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
     if (doctor.hospital_id !== hospitalId)
-      return res.status(400).json({ message: "Doctor does not belong to this hospital" });
+      return res
+        .status(400)
+        .json({ message: "Doctor does not belong to this hospital" });
 
-    const appointments = await Appointment.find({ doctorId, hospitalId, date }).sort({ slotStart: 1 });
-    res.json({ doctorId, hospitalId, date, total: appointments.length, appointments });
+    const appointments = await Appointment.find({
+      doctorId,
+      hospitalId,
+      date,
+    }).sort({ slotStart: 1 });
+    res.json({
+      doctorId,
+      hospitalId,
+      date,
+      total: appointments.length,
+      appointments,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
-
-
 
 /**
  * GET /api/doctors/:hospitalId/:doctorId/history?date=YYYY-MM-DD
@@ -67,7 +142,9 @@ exports.getDoctorAppointmentHistory = async (req, res) => {
 
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
     if (doctor.hospital_id !== hospitalId) {
-      return res.status(400).json({ message: "Doctor does not belong to this hospital" });
+      return res
+        .status(400)
+        .json({ message: "Doctor does not belong to this hospital" });
     }
 
     const targetDate = new Date(date);
@@ -87,12 +164,14 @@ exports.getDoctorAppointmentHistory = async (req, res) => {
     const weekStart = toYMD(monday);
     const weekEnd = toYMD(targetDate); // ✅ this is the fix
 
-
     // MONTH range
-    const firstDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), 2);
+    const firstDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      2
+    );
     const monthStart = toYMD(firstDay);
     const monthEnd = toYMD(targetDate); // ✅ end = given date, not month end
-
 
     const doctorObjectId = doctor._id;
 
@@ -143,7 +222,6 @@ exports.getDoctorAppointmentHistory = async (req, res) => {
   }
 };
 
-
 // ✅ GET /api/doctors/appointments/:appointmentId/details
 exports.getAppointmentWithPatientDetails = async (req, res) => {
   try {
@@ -166,7 +244,9 @@ exports.getAppointmentWithPatientDetails = async (req, res) => {
     let normalizedPatient = null;
 
     // 3️⃣ Try finding in Patient collection first
-    let patient = await Patient.findById(appointment.patientId).select("-password");
+    let patient = await Patient.findById(appointment.patientId).select(
+      "-password"
+    );
 
     if (patient) {
       normalizedPatient = {
@@ -181,11 +261,15 @@ exports.getAppointmentWithPatientDetails = async (req, res) => {
       };
     } else {
       // 4️⃣ If not found in Patient, try in ReceptionistPatient
-      const rPatient = await ReceptionistPatient.findById(appointment.patientId);
+      const rPatient = await ReceptionistPatient.findById(
+        appointment.patientId
+      );
       if (rPatient) {
         normalizedPatient = {
           patientId: rPatient._id,
-          patientName: `${rPatient.firstName || ""} ${rPatient.lastName || ""}`.trim(),
+          patientName: `${rPatient.firstName || ""} ${
+            rPatient.lastName || ""
+          }`.trim(),
           email: rPatient.email || null,
           dob: rPatient.dob || null,
           age: calculateAge(rPatient.dob),
@@ -213,7 +297,6 @@ exports.getAppointmentWithPatientDetails = async (req, res) => {
   }
 };
 
-
 // ✅ Doctor marks prescription as given
 // ✅ Mark an appointment as prescription given (with hospitalId check)
 exports.markPrescriptionGiven = async (req, res) => {
@@ -229,11 +312,13 @@ exports.markPrescriptionGiven = async (req, res) => {
     // 2️⃣ Find appointment with hospitalId check
     const appointment = await Appointment.findOne({
       _id: appointmentId,
-      hospitalId: hospitalId
+      hospitalId: hospitalId,
     });
 
     if (!appointment) {
-      return res.status(404).json({ message: "Appointment not found for this hospital" });
+      return res
+        .status(404)
+        .json({ message: "Appointment not found for this hospital" });
     }
 
     // 3️⃣ Mark prescription as given
@@ -242,7 +327,7 @@ exports.markPrescriptionGiven = async (req, res) => {
 
     res.json({
       message: "Prescription marked as given successfully",
-      appointment
+      appointment,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
